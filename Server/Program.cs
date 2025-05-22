@@ -44,11 +44,13 @@ builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy.WithOrigins("https://localhost:5002") 
+        policy.WithOrigins("https://localhost:5002")
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
 });
+
+builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
 builder.Services.AddScoped<JwtTokenService>();
 builder.Services.AddScoped<IFileStorageService, FileStorageService>();

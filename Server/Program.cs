@@ -52,6 +52,7 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddScoped<JwtTokenService>();
 builder.Services.AddScoped<IFileStorageService, FileStorageService>();
+builder.Services.AddScoped<IUserService, UserService>();
 
 builder.Services.AddControllers();
 

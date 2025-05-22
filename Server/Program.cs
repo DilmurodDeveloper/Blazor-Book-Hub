@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using BlazorBookHub.Server.Data;
 using BlazorBookHub.Server.Interfaces;
 using BlazorBookHub.Server.Models;
@@ -17,6 +17,7 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
 
+var config = builder.Configuration;
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -24,7 +25,6 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
-    var config = builder.Configuration;
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,
@@ -33,8 +33,7 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = config["JwtSettings:Audience"],
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
-        IssuerSigningKey = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(config["JwtSettings:Key"]!))
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(config["JwtSettings:Key"]!))
     };
 });
 
@@ -44,19 +43,19 @@ builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy.WithOrigins("https://localhost:5002")
+        policy.WithOrigins("https://localhost:7076")
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
 });
 
 builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
-
 builder.Services.AddScoped<JwtTokenService>();
 builder.Services.AddScoped<IFileStorageService, FileStorageService>();
 builder.Services.AddScoped<IUserService, UserService>();
 
 builder.Services.AddControllers();
+builder.Services.AddRazorPages(); 
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -71,17 +70,28 @@ using (var scope = app.Services.CreateScope())
 
 if (app.Environment.IsDevelopment())
 {
+    app.UseWebAssemblyDebugging();
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+else
+{
+    app.UseExceptionHandler("/Error");
+    app.UseHsts();
+}
 
 app.UseHttpsRedirection();
+app.UseBlazorFrameworkFiles();
+app.UseStaticFiles();
+
+app.UseRouting();
 
 app.UseCors();
 
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapControllers();
-
+app.MapRazorPages();        
+app.MapControllers();        
+app.MapFallbackToFile("index.html"); 
 app.Run();

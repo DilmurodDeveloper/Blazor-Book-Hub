@@ -1,4 +1,5 @@
-﻿using BlazorBookHub.Shared.Models;
+﻿using BlazorBookHub.Server.Models;
+using BlazorBookHub.Shared.Models;
 
 namespace BlazorBookHub.Server.Interfaces
 {
@@ -9,5 +10,6 @@ namespace BlazorBookHub.Server.Interfaces
         Task<BookDto> CreateAsync(CreateBookDto dto);
         Task UpdateAsync(int id, CreateBookDto dto);
         Task DeleteAsync(int id);
+        Task AddAsync(Book book);
     }
 }

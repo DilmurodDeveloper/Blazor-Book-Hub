@@ -51,5 +51,10 @@ namespace BlazorBookHub.Server.Services
             if (book is null) throw new Exception("Book not found");
             await repo.DeleteAsync(book);
         }
+
+        public async Task AddAsync(Book book)
+        {
+            await repo.AddAsync(book);
+        }
     }
 }

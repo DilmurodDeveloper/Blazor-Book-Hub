@@ -1,0 +1,75 @@
+﻿@page "/login"
+@inject HttpClient Http
+@inject NavigationManager NavigationManager
+@inject ILocalStorageService LocalStorage
+@inject IJSRuntime JS
+@inject AuthenticationStateProvider AuthStateProvider
+
+<h3>Login</h3>
+
+<EditForm Model="loginModel" OnValidSubmit="HandleLogin">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div>
+        <label>Email:</label><br />
+        <InputText @bind-Value="loginModel.Email" />
+        <ValidationMessage For="@(() => loginModel.Email)" />
+    </div>
+
+    <div>
+        <label>Password:</label><br />
+        <InputText @bind-Value="loginModel.Password" type="password" />
+        <ValidationMessage For="@(() => loginModel.Password)" />
+    </div>
+
+    <button type="submit">Login</button>
+</EditForm>
+
+@if (!string.IsNullOrEmpty(message))
+{
+    <p>@message</p>
+}
+
+@code {
+    private LoginDto loginModel = new();
+    private string? message;
+
+    private async Task HandleLogin()
+    {
+        try
+        {
+            var response = await Http.PostAsJsonAsync("api/auth/login", loginModel);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<LoginResponse>();
+                if (result != null)
+                {
+                    await LocalStorage.SetItemAsync("authToken", result.Token);
+
+                    if (AuthStateProvider is CustomAuthStateProvider customAuthProvider)
+                    {
+                        customAuthProvider.NotifyUserAuthentication(result.Token);
+                    }
+
+                    message = "Login successful! Redirecting...";
+                    await Task.Delay(1500);
+                    NavigationManager.NavigateTo("/");
+                }
+                else
+                {
+                    message = "Login failed: no response data.";
+                }
+            }
+            else
+            {
+                message = "Invalid login attempt.";
+            }
+        }
+        catch (Exception ex)
+        {
+            message = $"Error: {ex.Message}";
+        }
+    }
+}

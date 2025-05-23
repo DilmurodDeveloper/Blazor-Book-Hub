@@ -29,12 +29,16 @@ namespace BlazorBookHub.Server.Controllers
             var result = await userManager.CreateAsync(user, model.Password);
 
             if (!result.Succeeded)
-                return BadRequest(result.Errors);
+            {
+                var errors = result.Errors.Select(e => e.Description).ToList();
+                return BadRequest(errors);
+            }
 
             await userManager.AddToRoleAsync(user, "User");
 
             return Ok("User registered successfully");
         }
+
 
         [HttpPost("login")]
         public async Task<IActionResult> Login(LoginDto dto)

@@ -1,0 +1,80 @@
+﻿@page "/register"
+@inject HttpClient Http
+@inject NavigationManager NavigationManager
+
+<h3>Register</h3>
+
+<EditForm Model="registerModel" OnValidSubmit="HandleRegister">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div>
+        <label>Full Name:</label><br />
+        <InputText @bind-Value="registerModel.FullName" />
+        <ValidationMessage For="@(() => registerModel.FullName)" />
+    </div>
+
+    <div>
+        <label>Email:</label><br />
+        <InputText @bind-Value="registerModel.Email" />
+        <ValidationMessage For="@(() => registerModel.Email)" />
+    </div>
+
+    <div>
+        <label>Password:</label><br />
+        <InputText @bind-Value="registerModel.Password" type="password" />
+        <ValidationMessage For="@(() => registerModel.Password)" />
+    </div>
+
+    <div>
+        <label>Birth Date:</label><br />
+        <InputDate @bind-Value="registerModel.BirthDate" />
+        <ValidationMessage For="@(() => registerModel.BirthDate)" />
+    </div>
+
+    <div>
+        <label>Gender:</label><br />
+        <InputSelect @bind-Value="registerModel.Gender">
+            <option value="">Select Gender</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+            <option value="Other">Other</option>
+        </InputSelect>
+        <ValidationMessage For="@(() => registerModel.Gender)" />
+    </div>
+
+    <button type="submit">Register</button>
+</EditForm>
+
+@if (!string.IsNullOrEmpty(message))
+{
+    <p>@message</p>
+}
+
+@code {
+    private RegisterDto registerModel = new RegisterDto();
+    private string? message;
+
+    private async Task HandleRegister()
+    {
+        try
+        {
+            var response = await Http.PostAsJsonAsync("api/auth/register", registerModel);
+            if (response.IsSuccessStatusCode)
+            {
+                message = "Registration successful! Redirecting to login...";
+                await Task.Delay(2000);
+                NavigationManager.NavigateTo("/login");
+            }
+            else
+            {
+                var errors = await response.Content.ReadFromJsonAsync<List<string>>();
+                message = errors != null ? string.Join(", ", errors) : "Registration failed.";
+            }
+        }
+        catch (Exception ex)
+        {
+            message = $"Error: {ex.Message}";
+        }
+    }
+}

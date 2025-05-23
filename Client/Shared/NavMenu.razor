@@ -11,14 +11,19 @@
         {
             <NavLink href="/admin/books">Book management</NavLink>
             <NavLink href="/admin/categories">Category management</NavLink>
+            <NavLink href="/admin/users">User management</NavLink>
         }
 
         @if (isUser)
         {
-            <NavLink href="/books">Books</NavLink>
+            <NavLink href="/user/books">Books</NavLink>
+            <NavLink href="/user/profile">Profile</NavLink>
         }
 
-        <button @onclick="Logout">Logout</button>
+        @if (isUser || isAdmin)
+        {
+            <button class="btn btn-link" @onclick="Logout">Logout</button>
+        }
     </nav>
 </div>
 

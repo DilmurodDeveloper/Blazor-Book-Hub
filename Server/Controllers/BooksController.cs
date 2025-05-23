@@ -115,8 +115,8 @@ public class BooksController : ControllerBase
         if (existingBook == null)
             return NotFound(new { message = $"Book with id {id} not found." });
 
-        var pdfPath = await _fileStorageService.SaveFileAsync(model.PdfFile, "pdfs") ?? existingBook.PdfPath;
-        var imgPath = await _fileStorageService.SaveFileAsync(model.ImageFile, "images") ?? existingBook.CoverImagePath;
+        var pdfPath = await _fileStorageService.SaveFileAsync(model.PdfFile!, "pdfs") ?? existingBook.PdfPath;
+        var imgPath = await _fileStorageService.SaveFileAsync(model.ImageFile!, "images") ?? existingBook.CoverImagePath;
 
         var dto = new CreateBookDto
         {

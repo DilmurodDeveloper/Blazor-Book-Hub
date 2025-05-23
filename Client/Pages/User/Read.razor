@@ -1,0 +1,57 @@
+﻿@page "/user/read/{BookId:int}"
+@inject HttpClient Http
+@inject NavigationManager NavigationManager
+
+<h3>Read Book</h3>
+
+@if (loading)
+{
+    <p><em>Loading PDF...</em></p>
+}
+else if (!string.IsNullOrEmpty(errorMessage))
+{
+    <p class="text-danger">@errorMessage</p>
+}
+else if (!string.IsNullOrEmpty(pdfUrl))
+{
+    <iframe src="@pdfUrl" style="width:100%; height:80vh;" frameborder="0"></iframe>
+}
+else
+{
+    <p>No PDF available.</p>
+}
+
+@code {
+    [Parameter]
+    public int BookId { get; set; }
+
+    private string? pdfUrl;
+    private bool loading = true;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        loading = true;
+        errorMessage = null;
+        try
+        {
+            var book = await Http.GetFromJsonAsync<BookDto>($"api/books/{BookId}");
+            if (book != null && !string.IsNullOrEmpty(book.PdfPath))
+            {
+                pdfUrl = book.PdfPath.StartsWith("http") ? book.PdfPath : NavigationManager.BaseUri + book.PdfPath;
+            }
+            else
+            {
+                errorMessage = "PDF not found for this book.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading PDF: {ex.Message}";
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+}

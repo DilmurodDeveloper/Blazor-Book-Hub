@@ -11,10 +11,10 @@ namespace BlazorBookHub.Server.Services
             _env = env;
         }
 
-        public async Task<string?> SaveFileAsync(IFormFile? file, string folderName)
+        public async Task<string> SaveFileAsync(IFormFile? file, string folderName)
         {
             if (file == null || file.Length == 0)
-                return null;  
+                return null!;  
 
             var allowedExtensions = new[] { ".pdf", ".jpg", ".jpeg", ".png" };
             var extension = Path.GetExtension(file.FileName).ToLowerInvariant();

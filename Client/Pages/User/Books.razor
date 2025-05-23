@@ -1,0 +1,108 @@
+﻿@page "/user/books"
+@inject HttpClient Http
+
+<h3>Books</h3>
+
+@if (loading)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <div class="mb-3">
+        <input type="text" class="form-control" placeholder="Search by title, author..."
+               @bind="SearchTerm" @bind:event="oninput" />
+    </div>
+
+    <div class="mb-3">
+        <select class="form-select" @bind="SelectedCategoryId">
+            <option value="0">All Categories</option>
+            @foreach (var category in categories)
+            {
+                <option value="@category.Id">@category.Name</option>
+            }
+        </select>
+    </div>
+
+    <div class="row">
+        @foreach (var book in filteredBooks)
+        {
+            <div class="col-md-4 mb-4">
+                <div class="card h-100">
+                    <img src="@book.CoverImagePath" class="card-img-top" alt="@book.Title" />
+                    <div class="card-body">
+                        <h5 class="card-title">@book.Title</h5>
+                        <p class="card-text"><strong>Author:</strong> @book.Author</p>
+                        <p class="card-text">@book.Description</p>
+                        <a href="@book.PdfPath" class="btn btn-primary" target="_blank">Read PDF</a>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private List<BookDto> books = new();
+    private List<CategoryDto> categories = new();
+    private List<BookDto> filteredBooks = new();
+
+    private string searchTerm = string.Empty;
+    private int selectedCategoryId = 0;
+    private bool loading = true;
+
+    private string SearchTerm
+    {
+        get => searchTerm;
+        set
+        {
+            if (searchTerm != value)
+            {
+                searchTerm = value;
+                ApplyFilter();
+            }
+        }
+    }
+
+    private int SelectedCategoryId
+    {
+        get => selectedCategoryId;
+        set
+        {
+            if (selectedCategoryId != value)
+            {
+                selectedCategoryId = value;
+                ApplyFilter();
+            }
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        loading = true;
+        try
+        {
+            books = await Http.GetFromJsonAsync<List<BookDto>>("api/books") ?? new();
+            categories = await Http.GetFromJsonAsync<List<CategoryDto>>("api/categories") ?? new();
+            ApplyFilter();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Error loading books or categories: " + ex.Message);
+        }
+        loading = false;
+    }
+
+    private void ApplyFilter()
+    {
+        filteredBooks = books
+            .Where(b =>
+                (string.IsNullOrWhiteSpace(searchTerm) ||
+                    b.Title.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                    b.Author.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)) &&
+                (selectedCategoryId == 0 || b.CategoryId == selectedCategoryId))
+            .ToList();
+
+        StateHasChanged();
+    }
+}

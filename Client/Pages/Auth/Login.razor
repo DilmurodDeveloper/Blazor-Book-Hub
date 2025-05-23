@@ -2,6 +2,7 @@
 @inject HttpClient Http
 @inject NavigationManager NavigationManager
 @inject Blazored.LocalStorage.ILocalStorageService LocalStorage
+@inject BlazorBookHub.Client.Services.JwtAuthenticationStateProvider AuthStateProvider
 
 <h3>Login</h3>
 
@@ -47,6 +48,8 @@
                 await LocalStorage.SetItemAsync("authToken", result.Token);
                 await LocalStorage.SetItemAsync("userName", result.FullName);
                 await LocalStorage.SetItemAsync("userRoles", result.Roles);
+
+                AuthStateProvider.NotifyUserAuthentication(result.Token);
 
                 NavigationManager.NavigateTo("/");
             }

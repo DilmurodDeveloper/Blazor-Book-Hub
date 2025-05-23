@@ -1,0 +1,142 @@
+﻿@page "/admin/categories"
+@inject HttpClient Http
+@inject IJSRuntime JS
+
+<h3>Manage Categories</h3>
+
+<button class="btn btn-primary mb-3" @onclick="ShowAddCategoryForm">Add New Category</button>
+
+@if (categories == null)
+{
+    <p><em>Loading...</em></p>
+}
+else if (categories.Count == 0)
+{
+    <p>No categories found.</p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var category in categories)
+            {
+                <tr>
+                    <td>@category.Name</td>
+                    <td>
+                        <button class="btn btn-sm btn-info me-2" @onclick="() => EditCategory(category.Id)">Edit</button>
+                        <button class="btn btn-sm btn-danger" @onclick="() => DeleteCategory(category.Id)">Delete</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@if (showForm)
+{
+    <EditForm Model="categoryModel" OnValidSubmit="HandleValidSubmit">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="mb-3">
+            <label>Name:</label>
+            <InputText @bind-Value="categoryModel.Name" class="form-control" />
+            <ValidationMessage For="@(() => categoryModel.Name)" />
+        </div>
+
+        <button type="submit" class="btn btn-success me-2">@((categoryModel.Id == 0) ? "Add" : "Update")</button>
+        <button type="button" class="btn btn-secondary" @onclick="Cancel">Cancel</button>
+    </EditForm>
+}
+
+@code {
+    private List<CategoryDto>? categories;
+    private CategoryDto categoryModel = new CategoryDto();
+    private bool showForm = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCategories();
+    }
+
+    private async Task LoadCategories()
+    {
+        categories = await Http.GetFromJsonAsync<List<CategoryDto>>("api/categories") ?? new List<CategoryDto>();
+    }
+
+    private void ShowAddCategoryForm()
+    {
+        categoryModel = new CategoryDto();
+        showForm = true;
+    }
+
+    private async Task EditCategory(int id)
+    {
+        var category = await Http.GetFromJsonAsync<CategoryDto>($"api/categories/{id}");
+        if (category != null)
+        {
+            categoryModel = category;
+            showForm = true;
+        }
+    }
+
+    private async Task DeleteCategory(int id)
+    {
+        bool confirmed = await JS.InvokeAsync<bool>("confirm", "Are you sure you want to delete this category?");
+        if (confirmed)
+        {
+            var response = await Http.DeleteAsync($"api/categories/{id}");
+            if (response.IsSuccessStatusCode)
+            {
+                await LoadCategories();
+            }
+            else
+            {
+            }
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        if (string.IsNullOrWhiteSpace(categoryModel.Name))
+        {
+            return;
+        }
+
+        if (categoryModel.Id == 0)
+        {
+            var response = await Http.PostAsJsonAsync("api/categories", categoryModel);
+            if (response.IsSuccessStatusCode)
+            {
+                await LoadCategories();
+                showForm = false;
+            }
+            else
+            {
+            }
+        }
+        else
+        {
+            var response = await Http.PutAsJsonAsync($"api/categories/{categoryModel.Id}", categoryModel);
+            if (response.IsSuccessStatusCode)
+            {
+                await LoadCategories();
+                showForm = false;
+            }
+            else
+            {
+            }
+        }
+    }
+
+    private void Cancel()
+    {
+        showForm = false;
+    }
+}

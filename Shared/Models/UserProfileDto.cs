@@ -4,6 +4,8 @@ namespace BlazorBookHub.Shared.Models
 {
     public class UserProfileDto
     {
+        public string Id { get; set; } = string.Empty;
+
         [Required, StringLength(100)]
         public string FullName { get; set; } = string.Empty;
 

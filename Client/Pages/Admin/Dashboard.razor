@@ -1,0 +1,55 @@
+﻿@page "/admin/dashboard"
+@inject HttpClient Http
+@attribute [Authorize(Roles = "Admin")]
+
+<h3>Admin Dashboard</h3>
+
+@if (stats == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card text-white bg-primary mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">Books</h5>
+                    <p class="card-text">@stats.BooksCount</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-white bg-success mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">Categories</h5>
+                    <p class="card-text">@stats.CategoriesCount</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-white bg-info mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">Users</h5>
+                    <p class="card-text">@stats.UsersCount</p>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private DashboardStats? stats;
+
+    protected override async Task OnInitializedAsync()
+    {
+        stats = await Http.GetFromJsonAsync<DashboardStats>("api/admin/dashboard");
+    }
+
+    public class DashboardStats
+    {
+        public int BooksCount { get; set; }
+        public int CategoriesCount { get; set; }
+        public int UsersCount { get; set; }
+    }
+}

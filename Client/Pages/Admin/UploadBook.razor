@@ -1,0 +1,120 @@
+﻿@page "/admin/upload"
+@inject HttpClient Http
+@inject NavigationManager NavigationManager
+
+<h3>Add a New Book</h3>
+
+<EditForm Model="@bookModel" OnValidSubmit="@HandleUpload">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="mb-3">
+        <label>Title:</label>
+        <InputText @bind-Value="bookModel.Title" class="form-control" />
+    </div>
+
+    <div class="mb-3">
+        <label>Author:</label>
+        <InputText @bind-Value="bookModel.Author" class="form-control" />
+    </div>
+
+    <div class="mb-3">
+        <label>Description:</label>
+        <InputTextArea @bind-Value="bookModel.Description" class="form-control" />
+    </div>
+
+    <div class="mb-3">
+        <label>Category ID:</label>
+        <InputNumber @bind-Value="bookModel.CategoryId" class="form-control" />
+    </div>
+
+    <div class="mb-3">
+        <label>Select PDF file:</label>
+        <InputFile OnChange="@OnPdfSelected" />
+    </div>
+
+    <div class="mb-3">
+        <label>Select image file:</label>
+        <InputFile OnChange="@OnImageSelected" />
+    </div>
+
+    <button type="submit" class="btn btn-primary">Upload</button>
+</EditForm>
+
+@if (!string.IsNullOrWhiteSpace(successMessage))
+{
+    <p class="text-success">@successMessage</p>
+}
+@if (!string.IsNullOrWhiteSpace(errorMessage))
+{
+    <p class="text-danger">@errorMessage</p>
+}
+
+@code {
+    private BookUploadClientDto bookModel = new();
+    private string successMessage = string.Empty;
+    private string errorMessage = string.Empty;
+
+    private IBrowserFile? pdfFile;
+    private IBrowserFile? imageFile;
+
+    private void OnPdfSelected(InputFileChangeEventArgs e)
+    {
+        pdfFile = e.File;
+    }
+
+    private void OnImageSelected(InputFileChangeEventArgs e)
+    {
+        imageFile = e.File;
+    }
+
+    private async Task HandleUpload()
+    {
+        try
+        {
+            successMessage = string.Empty;
+            errorMessage = string.Empty;
+
+            if (pdfFile == null || imageFile == null)
+            {
+                errorMessage = "Please select both PDF and image files.";
+                return;
+            }
+
+            var content = new MultipartFormDataContent();
+
+            var pdfStream = pdfFile.OpenReadStream(600 * 1024 * 1024); 
+            var pdfContent = new StreamContent(pdfStream);
+            pdfContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(pdfFile.ContentType);
+            content.Add(pdfContent, "PdfFile", pdfFile.Name);
+
+            var imageStream = imageFile.OpenReadStream(10 * 1024 * 1024); 
+            var imageContent = new StreamContent(imageStream);
+            imageContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(imageFile.ContentType);
+            content.Add(imageContent, "ImageFile", imageFile.Name);
+
+            content.Add(new StringContent(bookModel.Title), "Title");
+            content.Add(new StringContent(bookModel.Author), "Author");
+            content.Add(new StringContent(bookModel.Description ?? ""), "Description");
+            content.Add(new StringContent(bookModel.CategoryId.ToString()), "CategoryId");
+
+            var response = await Http.PostAsync("api/books/upload", content);
+
+            if (response.IsSuccessStatusCode)
+            {
+                successMessage = "The book was successfully uploaded.";
+                bookModel = new();
+                pdfFile = null;
+                imageFile = null;
+            }
+            else
+            {
+                errorMessage = $"Upload failed: {response.ReasonPhrase}";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"An error occurred: {ex.Message}";
+        }
+    }
+}

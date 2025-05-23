@@ -9,5 +9,6 @@ namespace BlazorBookHub.Server.Interfaces
         Task<Book> AddAsync(Book book);
         Task UpdateAsync(Book book);
         Task DeleteAsync(Book book);
+        Task<bool> ExistsAsync(int id);
     }
 }

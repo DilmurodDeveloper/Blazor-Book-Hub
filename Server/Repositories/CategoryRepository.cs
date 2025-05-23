@@ -5,31 +5,43 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BlazorBookHub.Server.Repositories
 {
-    public class CategoryRepository(ApplicationDbContext context) : ICategoryRepository
+    public class CategoryRepository : ICategoryRepository
     {
+        private readonly ApplicationDbContext _context;
+
+        public CategoryRepository(ApplicationDbContext context)
+        {
+            _context = context;
+        }
+
         public async Task<IEnumerable<Category>> GetAllAsync() =>
-            await context.Categories.ToListAsync();
+            await _context.Categories.ToListAsync();
 
         public async Task<Category?> GetByIdAsync(int id) =>
-            await context.Categories.FindAsync(id);
+            await _context.Categories.FindAsync(id);
 
         public async Task<Category> AddAsync(Category category)
         {
-            context.Categories.Add(category);
-            await context.SaveChangesAsync();
+            _context.Categories.Add(category);
+            await _context.SaveChangesAsync();
             return category;
         }
 
         public async Task UpdateAsync(Category category)
         {
-            context.Categories.Update(category);
-            await context.SaveChangesAsync();
+            _context.Categories.Update(category);
+            await _context.SaveChangesAsync();
         }
 
         public async Task DeleteAsync(Category category)
         {
-            context.Categories.Remove(category);
-            await context.SaveChangesAsync();
+            _context.Categories.Remove(category);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task<bool> ExistsAsync(int id)
+        {
+            return await _context.Categories.AnyAsync(c => c.Id == id);
         }
     }
 }

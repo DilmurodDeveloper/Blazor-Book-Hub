@@ -4,6 +4,7 @@ using BlazorBookHub.Server.Interfaces;
 using BlazorBookHub.Server.Models;
 using BlazorBookHub.Server.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -54,6 +55,11 @@ builder.Services.AddScoped<JwtTokenService>();
 builder.Services.AddScoped<IFileStorageService, FileStorageService>();
 builder.Services.AddScoped<IUserService, UserService>();
 
+builder.Services.Configure<FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = 600 * 1024 * 1024; 
+});
+
 builder.Services.AddControllers();
 builder.Services.AddRazorPages(); 
 
@@ -66,6 +72,7 @@ using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
     await DbSeeder.SeedRolesAsync(services);
+    await DbSeeder.SeedAdminUserAsync(services);
 }
 
 if (app.Environment.IsDevelopment())

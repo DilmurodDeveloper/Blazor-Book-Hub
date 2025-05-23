@@ -1,9 +1,7 @@
 ﻿@page "/login"
 @inject HttpClient Http
 @inject NavigationManager NavigationManager
-@inject ILocalStorageService LocalStorage
-@inject IJSRuntime JS
-@inject AuthenticationStateProvider AuthStateProvider
+@inject Blazored.LocalStorage.ILocalStorageService LocalStorage
 
 <h3>Login</h3>
 
@@ -26,50 +24,40 @@
     <button type="submit">Login</button>
 </EditForm>
 
-@if (!string.IsNullOrEmpty(message))
+@if (!string.IsNullOrEmpty(errorMessage))
 {
-    <p>@message</p>
+    <p style="color:red">@errorMessage</p>
 }
 
 @code {
     private LoginDto loginModel = new();
-    private string? message;
+    private string errorMessage = string.Empty;
 
     private async Task HandleLogin()
     {
-        try
+        errorMessage = string.Empty;
+
+        var response = await Http.PostAsJsonAsync("api/auth/login", loginModel);
+
+        if (response.IsSuccessStatusCode)
         {
-            var response = await Http.PostAsJsonAsync("api/auth/login", loginModel);
-
-            if (response.IsSuccessStatusCode)
+            var result = await response.Content.ReadFromJsonAsync<LoginResponse>();
+            if (result != null)
             {
-                var result = await response.Content.ReadFromJsonAsync<LoginResponse>();
-                if (result != null)
-                {
-                    await LocalStorage.SetItemAsync("authToken", result.Token);
+                await LocalStorage.SetItemAsync("authToken", result.Token);
+                await LocalStorage.SetItemAsync("userName", result.FullName);
+                await LocalStorage.SetItemAsync("userRoles", result.Roles);
 
-                    if (AuthStateProvider is CustomAuthStateProvider customAuthProvider)
-                    {
-                        customAuthProvider.NotifyUserAuthentication(result.Token);
-                    }
-
-                    message = "Login successful! Redirecting...";
-                    await Task.Delay(1500);
-                    NavigationManager.NavigateTo("/");
-                }
-                else
-                {
-                    message = "Login failed: no response data.";
-                }
+                NavigationManager.NavigateTo("/");
             }
             else
             {
-                message = "Invalid login attempt.";
+                errorMessage = "An invalid response was received from the server.";
             }
         }
-        catch (Exception ex)
+        else
         {
-            message = $"Error: {ex.Message}";
+            errorMessage = "Incorrect email or password.";
         }
     }
 }

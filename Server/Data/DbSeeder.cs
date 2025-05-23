@@ -1,4 +1,7 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using System;
+using BlazorBookHub.Server.Models;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace BlazorBookHub.Server.Data
 {
@@ -19,17 +22,17 @@ namespace BlazorBookHub.Server.Data
             }
         }
 
-        public static async Task SeedAdminUserAsync(IServiceProvider provider)
+        public static async Task SeedAdminUserAsync(IServiceProvider serviceProvider)
         {
-            var userManager = provider.GetRequiredService<UserManager<IdentityUser>>();
-            var roleManager = provider.GetRequiredService<RoleManager<IdentityRole>>();
+            var userManager = serviceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            var roleManager = serviceProvider.GetRequiredService<RoleManager<IdentityRole>>();
 
             string adminEmail = "admin@example.com";
             string adminPassword = "Admin123!";
 
             if (await userManager.FindByEmailAsync(adminEmail) == null)
             {
-                var adminUser = new IdentityUser { UserName = adminEmail, Email = adminEmail };
+                var adminUser = new ApplicationUser { UserName = adminEmail, Email = adminEmail };
                 var result = await userManager.CreateAsync(adminUser, adminPassword);
 
                 if (result.Succeeded)
@@ -41,6 +44,5 @@ namespace BlazorBookHub.Server.Data
                 }
             }
         }
-
     }
 }

@@ -9,7 +9,7 @@
     <ValidationSummary />
 
     <div>
-        <label>Full Name:</label><br />
+        <label>FullName:</label><br />
         <InputText @bind-Value="registerModel.FullName" />
         <ValidationMessage For="@(() => registerModel.FullName)" />
     </div>
@@ -27,7 +27,7 @@
     </div>
 
     <div>
-        <label>Birth Date:</label><br />
+        <label>Date of birth:</label><br />
         <InputDate @bind-Value="registerModel.BirthDate" />
         <ValidationMessage For="@(() => registerModel.BirthDate)" />
     </div>
@@ -35,46 +35,71 @@
     <div>
         <label>Gender:</label><br />
         <InputSelect @bind-Value="registerModel.Gender">
-            <option value="">Select Gender</option>
+            <option value="">Select gender</option>
             <option value="Male">Male</option>
             <option value="Female">Female</option>
-            <option value="Other">Other</option>
+            <option value="Others">Others</option>
         </InputSelect>
         <ValidationMessage For="@(() => registerModel.Gender)" />
     </div>
 
+
     <button type="submit">Register</button>
 </EditForm>
 
-@if (!string.IsNullOrEmpty(message))
+@if (!string.IsNullOrEmpty(errorMessage))
 {
-    <p>@message</p>
+    <p style="color:red">@errorMessage</p>
 }
 
 @code {
-    private RegisterDto registerModel = new RegisterDto();
-    private string? message;
+    private RegisterDto registerModel = new();
+    private string errorMessage = string.Empty;
 
     private async Task HandleRegister()
     {
-        try
+        errorMessage = string.Empty;
+        var response = await Http.PostAsJsonAsync("api/auth/register", registerModel);
+
+        if (response.IsSuccessStatusCode)
         {
-            var response = await Http.PostAsJsonAsync("api/auth/register", registerModel);
-            if (response.IsSuccessStatusCode)
+            NavigationManager.NavigateTo("/login");
+        }
+        else
+        {
+            string content = await response.Content.ReadAsStringAsync();
+
+            try
             {
-                message = "Registration successful! Redirecting to login...";
-                await Task.Delay(2000);
-                NavigationManager.NavigateTo("/login");
+                var validationProblem = System.Text.Json.JsonSerializer.Deserialize<ValidationProblemDetails>(content,
+                    new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                if (validationProblem != null && validationProblem.Errors.Any())
+                {
+                    errorMessage = string.Join(", ", validationProblem.Errors.SelectMany(e => e.Value));
+                }
+                else
+                {
+                    var errorObj = System.Text.Json.JsonSerializer.Deserialize<ErrorMessage>(content,
+                        new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                    errorMessage = errorObj?.Message ?? "Registration failed.";
+                }
             }
-            else
+            catch
             {
-                var errors = await response.Content.ReadFromJsonAsync<List<string>>();
-                message = errors != null ? string.Join(", ", errors) : "Registration failed.";
+                errorMessage = "An unexpected error occurred.";
             }
         }
-        catch (Exception ex)
-        {
-            message = $"Error: {ex.Message}";
-        }
+    }
+
+    public class ValidationProblemDetails
+    {
+        public Dictionary<string, string[]> Errors { get; set; } = new();
+    }
+
+    public class ErrorMessage
+    {
+        public string? Message { get; set; }
     }
 }

@@ -4,6 +4,7 @@ using BlazorBookHub.Shared.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;  
 
 namespace BlazorBookHub.Server.Controllers
 {
@@ -23,14 +24,16 @@ namespace BlazorBookHub.Server.Controllers
         public async Task<ActionResult<UserProfileDto>> GetProfile()
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var user = await _userManager.FindByIdAsync(userId!);
+            if (userId == null) return Unauthorized();
+
+            var user = await _userManager.FindByIdAsync(userId);
 
             if (user == null) return NotFound();
 
             return Ok(new UserProfileDto
             {
                 FullName = user.FullName,
-                Email = user.Email!,
+                Email = user.Email ?? string.Empty,
                 AvatarUrl = user.AvatarUrl,
                 BirthDate = user.BirthDate,
                 Gender = user.Gender
@@ -41,8 +44,9 @@ namespace BlazorBookHub.Server.Controllers
         public async Task<IActionResult> UpdateProfile(UserProfileDto model)
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var user = await _userManager.FindByIdAsync(userId!);
+            if (userId == null) return Unauthorized();
 
+            var user = await _userManager.FindByIdAsync(userId);
             if (user == null) return NotFound();
 
             user.FullName = model.FullName;
@@ -55,6 +59,22 @@ namespace BlazorBookHub.Server.Controllers
                 return BadRequest(result.Errors);
 
             return Ok("Profile updated");
+        }
+
+        [HttpGet]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> GetUsers()
+        {
+            var users = await _userManager.Users
+                .Select(u => new UserDto
+                {
+                    Id = u.Id,
+                    FullName = u.FullName ?? string.Empty,
+                    Email = u.Email ?? string.Empty
+                })
+                .ToListAsync();
+
+            return Ok(users);
         }
     }
 }

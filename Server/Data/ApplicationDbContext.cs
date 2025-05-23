@@ -4,10 +4,14 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BlazorBookHub.Server.Data
 {
-    public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
-    : IdentityDbContext<ApplicationUser>(options)
+    public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     {
-        public DbSet<Book> Books => Set<Book>();
-        public DbSet<Category> Categories => Set<Category>();
+        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+            : base(options)
+        {
+        }
+
+        public DbSet<Book> Books { get; set; }
+        public DbSet<Category> Categories { get; set; }
     }
 }

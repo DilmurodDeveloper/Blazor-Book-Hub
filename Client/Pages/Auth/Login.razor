@@ -1,0 +1,90 @@
+﻿@page "/login"
+@layout EmptyLayout
+@inject HttpClient Http
+@inject NavigationManager NavigationManager
+@inject Blazored.LocalStorage.ILocalStorageService LocalStorage
+@inject BlazorBookHub.Client.Services.JwtAuthenticationStateProvider AuthStateProvider
+
+<h3>Login</h3>
+
+<EditForm Model="loginModel" OnValidSubmit="HandleLogin">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div>
+        <label>Email:</label><br />
+        <InputText @bind-Value="loginModel.Email" />
+        <ValidationMessage For="@(() => loginModel.Email)" />
+    </div>
+
+    <div>
+        <label>Password:</label><br />
+        <InputText @bind-Value="loginModel.Password" type="password" />
+        <ValidationMessage For="@(() => loginModel.Password)" />
+    </div>
+
+    <button type="submit">Login</button>
+</EditForm>
+
+<p>
+    Not registered? <a href="/register">Register</a>
+</p>
+
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <p style="color:red">@errorMessage</p>
+}
+
+@code {
+    private LoginDto loginModel = new();
+    private string errorMessage = string.Empty;
+
+    private async Task HandleLogin()
+    {
+        errorMessage = string.Empty;
+
+        try
+        {
+            var response = await Http.PostAsJsonAsync("api/auth/login", loginModel);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<LoginResponse>();
+
+                if (result != null)
+                {
+                    await LocalStorage.SetItemAsync("authToken", result.Token);
+                    await LocalStorage.SetItemAsync("userName", result.FullName);
+                    await LocalStorage.SetItemAsync("userRoles", result.Roles);
+
+                    AuthStateProvider.NotifyUserAuthentication(result.Token);
+
+                    if (result.Roles.Contains("Admin"))
+                    {
+                        NavigationManager.NavigateTo("/admin/dashboard");
+                    }
+                    else if (result.Roles.Contains("User"))
+                    {
+                        NavigationManager.NavigateTo("/user/books");
+                    }
+                    else
+                    {
+                        NavigationManager.NavigateTo("/");
+                    }
+                }
+                else
+                {
+                    errorMessage = "An invalid response was received from the server.";
+                }
+            }
+            else
+            {
+                errorMessage = "Incorrect email or password.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "An error occurred: " + ex.Message;
+        }
+    }
+}

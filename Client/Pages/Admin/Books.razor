@@ -1,0 +1,96 @@
+﻿@page "/admin/books"
+@inject HttpClient Http
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JS
+@attribute [Authorize(Roles = "Admin")]
+
+<h3>Book management</h3>
+
+<button class="btn btn-primary mb-3" @onclick="NavigateToUploadForCreate">Add a new book</button>
+
+@if (books == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Cover</th>
+                <th>Title</th>
+                <th>Author</th>
+                <th>Category Name</th>
+                <th>PDF</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var book in books)
+            {
+                <tr>
+                    <td>
+                        @if (!string.IsNullOrWhiteSpace(book.CoverImagePath))
+                        {
+                            <img src="@($"/{book.CoverImagePath}")" alt="Cover" width="60" />
+                        }
+                    </td>
+                    <td>@book.Title</td>
+                    <td>@book.Author</td>
+                    <td>@book.CategoryName</td>
+                    <td>
+                        @if (!string.IsNullOrWhiteSpace(book.PdfPath))
+                        {
+                            <a href="@($"/{book.PdfPath}")" target="_blank">Open PDF</a>
+                        }
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-info me-2" @onclick="() => NavigateToUploadForEdit(book.Id)">Edit</button>
+                        <button class="btn btn-sm btn-danger" @onclick="() => DeleteBook(book.Id)">Delete</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+}
+
+@code {
+    private List<BookDto>? books;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadBooks();
+    }
+
+    private async Task LoadBooks()
+    {
+        books = await Http.GetFromJsonAsync<List<BookDto>>("api/books");
+    }
+
+    private void NavigateToUploadForCreate()
+    {
+        NavigationManager.NavigateTo("/admin/upload");
+    }
+
+    private void NavigateToUploadForEdit(int id)
+    {
+        NavigationManager.NavigateTo($"/admin/upload/{id}");
+    }
+
+    private async Task DeleteBook(int id)
+    {
+        var confirmed = await JS.InvokeAsync<bool>("confirm", "Are you sure you want to delete?");
+        if (confirmed)
+        {
+            var response = await Http.DeleteAsync($"api/books/{id}");
+            if (response.IsSuccessStatusCode)
+            {
+                await LoadBooks();
+            }
+            else
+            {
+            }
+        }
+    }
+}

@@ -1,0 +1,176 @@
+﻿@page "/admin/upload"
+@page "/admin/upload/{BookId:int}"
+@inject HttpClient Http
+@inject NavigationManager NavigationManager
+
+<h3>@((BookId == 0) ? "Add a New Book" : "Edit Book")</h3>
+
+<EditForm Model="@bookModel" OnValidSubmit="@HandleSubmit">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="mb-3">
+        <label>Title:</label>
+        <InputText @bind-Value="bookModel.Title" class="form-control" />
+    </div>
+
+    <div class="mb-3">
+        <label>Author:</label>
+        <InputText @bind-Value="bookModel.Author" class="form-control" />
+    </div>
+
+    <div class="mb-3">
+        <label>Description:</label>
+        <InputTextArea @bind-Value="bookModel.Description" class="form-control" />
+    </div>
+
+    <div class="mb-3">
+        <label>Category ID:</label>
+        <InputNumber @bind-Value="bookModel.CategoryId" class="form-control" />
+    </div>
+
+    <div class="mb-3">
+        <label>Select PDF file:</label>
+        <InputFile OnChange="@OnPdfSelected" />
+        @if (BookId != 0 && !string.IsNullOrEmpty(existingPdfPath))
+        {
+            <div><small>Current file: @existingPdfPath</small></div>
+        }
+    </div>
+
+    <div class="mb-3">
+        <label>Select image file:</label>
+        <InputFile OnChange="@OnImageSelected" />
+        @if (BookId != 0 && !string.IsNullOrEmpty(existingImagePath))
+        {
+            <div><small>Current image: @existingImagePath</small></div>
+        }
+    </div>
+
+    <button type="submit" class="btn btn-primary">@((BookId == 0) ? "Upload" : "Update")</button>
+    <button type="button" class="btn btn-secondary ms-2" @onclick="Cancel">Cancel</button>
+</EditForm>
+
+@if (!string.IsNullOrWhiteSpace(successMessage))
+{
+    <p class="text-success">@successMessage</p>
+}
+@if (!string.IsNullOrWhiteSpace(errorMessage))
+{
+    <p class="text-danger">@errorMessage</p>
+}
+
+@code {
+    [Parameter]
+    public int BookId { get; set; } = 0;
+
+    private BookUploadClientDto bookModel = new();
+    private string? existingPdfPath;
+    private string? existingImagePath;
+    private IBrowserFile? pdfFile;
+    private IBrowserFile? imageFile;
+
+    private string successMessage = string.Empty;
+    private string errorMessage = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (BookId != 0)
+        {
+            var book = await Http.GetFromJsonAsync<BookDto>($"api/books/{BookId}");
+            if (book != null)
+            {
+                bookModel.Title = book.Title;
+                bookModel.Author = book.Author;
+                bookModel.Description = book.Description;
+                bookModel.CategoryId = book.CategoryId;
+
+                existingPdfPath = book.PdfPath;
+                existingImagePath = book.CoverImagePath;
+            }
+            else
+            {
+                errorMessage = "Book not found.";
+            }
+        }
+    }
+
+    private void OnPdfSelected(InputFileChangeEventArgs e)
+    {
+        pdfFile = e.File;
+    }
+
+    private void OnImageSelected(InputFileChangeEventArgs e)
+    {
+        imageFile = e.File;
+    }
+
+    private async Task HandleSubmit()
+    {
+        try
+        {
+            successMessage = string.Empty;
+            errorMessage = string.Empty;
+
+            if (bookModel.CategoryId == 0)
+            {
+                errorMessage = "Category ID must be greater than 0.";
+                return;
+            }
+
+            var content = new MultipartFormDataContent();
+
+            if (pdfFile != null)
+            {
+                var pdfStream = pdfFile.OpenReadStream(600 * 1024 * 1024);
+                var pdfContent = new StreamContent(pdfStream);
+                pdfContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(pdfFile.ContentType);
+                content.Add(pdfContent, "PdfFile", pdfFile.Name);
+            }
+
+            if (imageFile != null)
+            {
+                var imageStream = imageFile.OpenReadStream(10 * 1024 * 1024);
+                var imageContent = new StreamContent(imageStream);
+                imageContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(imageFile.ContentType);
+                content.Add(imageContent, "ImageFile", imageFile.Name);
+            }
+
+            content.Add(new StringContent(bookModel.Title ?? ""), "Title");
+            content.Add(new StringContent(bookModel.Author ?? ""), "Author");
+            content.Add(new StringContent(bookModel.Description ?? ""), "Description");
+            content.Add(new StringContent(bookModel.CategoryId.ToString()), "CategoryId");
+
+            HttpResponseMessage response;
+
+            if (BookId == 0)
+            {
+                response = await Http.PostAsync("api/books/upload", content);
+            }
+            else
+            {
+                response = await Http.PutAsync($"api/books/upload/{BookId}", content);
+            }
+
+            if (response.IsSuccessStatusCode)
+            {
+                successMessage = BookId == 0 ? "The book was successfully uploaded." : "The book was successfully updated.";
+                NavigationManager.NavigateTo("/admin/books");
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                errorMessage = $"Operation failed: {response.ReasonPhrase}. Details: {errorContent}";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"An error occurred: {ex.Message}";
+        }
+    }
+
+    private void Cancel()
+    {
+        NavigationManager.NavigateTo("/admin/books");
+    }
+}

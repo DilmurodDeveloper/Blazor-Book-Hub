@@ -9,5 +9,7 @@ namespace BlazorBookHub.Server.Interfaces
         Task<CategoryDto> CreateAsync(CreateCategoryDto dto);
         Task UpdateAsync(int id, CreateCategoryDto dto);
         Task DeleteAsync(int id);
+        Task<bool> ExistsAsync(int id);
+        Task<int> GetCountAsync();
     }
 }

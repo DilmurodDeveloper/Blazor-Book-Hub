@@ -11,10 +11,10 @@ namespace BlazorBookHub.Server.Services
             _env = env;
         }
 
-        public async Task<string> SaveFileAsync(IFormFile file, string folderName)
+        public async Task<string?> SaveFileAsync(IFormFile? file, string folderName)
         {
             if (file == null || file.Length == 0)
-                throw new ArgumentException("The file is empty.");
+                return null;  
 
             var allowedExtensions = new[] { ".pdf", ".jpg", ".jpeg", ".png" };
             var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
@@ -22,7 +22,7 @@ namespace BlazorBookHub.Server.Services
             if (!allowedExtensions.Contains(extension))
                 throw new ArgumentException("Invalid file type. Only PDF or image files are allowed.");
 
-            const long maxFileSize = 600 * 1024 * 1024; 
+            const long maxFileSize = 600 * 1024 * 1024;
             if (file.Length > maxFileSize)
                 throw new ArgumentException("The file size should not exceed 600MB.");
 
@@ -33,16 +33,9 @@ namespace BlazorBookHub.Server.Services
             string uniqueFileName = Guid.NewGuid().ToString() + extension;
             string filePath = Path.Combine(uploadsFolder, uniqueFileName);
 
-            try
+            using (var stream = new FileStream(filePath, FileMode.Create))
             {
-                using (var stream = new FileStream(filePath, FileMode.Create))
-                {
-                    await file.CopyToAsync(stream);
-                }
-            }
-            catch (Exception ex)
-            {
-                throw new IOException("An error occurred while saving the file.", ex);
+                await file.CopyToAsync(stream);
             }
 
             return Path.Combine("uploads", folderName, uniqueFileName).Replace("\\", "/");

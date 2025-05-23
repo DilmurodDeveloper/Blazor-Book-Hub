@@ -4,46 +4,63 @@
 
 <h3>Admin Dashboard</h3>
 
-@if (stats == null)
+@if (loading)
 {
     <p><em>Loading...</em></p>
+}
+else if (loadError != null)
+{
+    <p style="color:red">Error loading data: @loadError</p>
 }
 else
 {
     <div class="row">
         <div class="col-md-4">
-            <div class="card text-white bg-primary mb-3">
+            <NavLink href="/admin/books" class="card text-white bg-primary mb-3 text-decoration-none">
                 <div class="card-body">
                     <h5 class="card-title">Books</h5>
-                    <p class="card-text">@stats.BooksCount</p>
+                    <p class="card-text">@stats!.BooksCount</p>
                 </div>
-            </div>
+            </NavLink>
         </div>
         <div class="col-md-4">
-            <div class="card text-white bg-success mb-3">
+            <NavLink href="/admin/categories" class="card text-white bg-success mb-3 text-decoration-none">
                 <div class="card-body">
                     <h5 class="card-title">Categories</h5>
                     <p class="card-text">@stats.CategoriesCount</p>
                 </div>
-            </div>
+            </NavLink>
         </div>
         <div class="col-md-4">
-            <div class="card text-white bg-info mb-3">
+            <NavLink href="/admin/users" class="card text-white bg-info mb-3 text-decoration-none">
                 <div class="card-body">
                     <h5 class="card-title">Users</h5>
                     <p class="card-text">@stats.UsersCount</p>
                 </div>
-            </div>
+            </NavLink>
         </div>
     </div>
 }
 
 @code {
     private DashboardStats? stats;
+    private bool loading = true;
+    private string? loadError;
 
     protected override async Task OnInitializedAsync()
     {
-        stats = await Http.GetFromJsonAsync<DashboardStats>("api/admin/dashboard");
+        try
+        {
+            stats = await Http.GetFromJsonAsync<DashboardStats>("api/admin/dashboard");
+        }
+        catch (Exception ex)
+        {
+            loadError = ex.Message;
+        }
+        finally
+        {
+            loading = false;
+        }
     }
 
     public class DashboardStats

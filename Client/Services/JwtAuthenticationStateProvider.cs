@@ -2,16 +2,19 @@
 using System.Text.Json;
 using Blazored.LocalStorage;
 using Microsoft.AspNetCore.Components.Authorization;
+using System.Net.Http.Headers;
 
 namespace BlazorBookHub.Client.Services
 {
     public class JwtAuthenticationStateProvider : AuthenticationStateProvider
     {
         private readonly ILocalStorageService _localStorage;
+        private readonly HttpClient _httpClient;
 
-        public JwtAuthenticationStateProvider(ILocalStorageService localStorage)
+        public JwtAuthenticationStateProvider(ILocalStorageService localStorage, HttpClient httpClient)
         {
             _localStorage = localStorage;
+            _httpClient = httpClient;
         }
 
         public override async Task<AuthenticationState> GetAuthenticationStateAsync()
@@ -20,27 +23,52 @@ namespace BlazorBookHub.Client.Services
 
             if (string.IsNullOrWhiteSpace(savedToken))
             {
+                _httpClient.DefaultRequestHeaders.Authorization = null;
                 return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
             }
 
-            var claims = ParseClaimsFromJwt(savedToken);
-            var identity = new ClaimsIdentity(claims, "jwt");
-            var user = new ClaimsPrincipal(identity);
+            try
+            {
+                _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", savedToken);
 
-            return new AuthenticationState(user);
+                var claims = ParseClaimsFromJwt(savedToken);
+                var identity = new ClaimsIdentity(claims, "jwt");
+                var user = new ClaimsPrincipal(identity);
+
+                return new AuthenticationState(user);
+            }
+            catch
+            {
+                _httpClient.DefaultRequestHeaders.Authorization = null;
+                return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
+            }
         }
 
         public void NotifyUserAuthentication(string token)
         {
-            var claims = ParseClaimsFromJwt(token);
-            var identity = new ClaimsIdentity(claims, "jwt");
-            var user = new ClaimsPrincipal(identity);
+            if (string.IsNullOrWhiteSpace(token))
+                throw new ArgumentNullException(nameof(token));
 
-            NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(user)));
+            try
+            {
+                _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+                var claims = ParseClaimsFromJwt(token);
+                var identity = new ClaimsIdentity(claims, "jwt");
+                var user = new ClaimsPrincipal(identity);
+
+                NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(user)));
+            }
+            catch
+            {
+                NotifyUserLogout();
+            }
         }
 
         public void NotifyUserLogout()
         {
+            _httpClient.DefaultRequestHeaders.Authorization = null;
+
             var anonymousUser = new ClaimsPrincipal(new ClaimsIdentity());
             NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(anonymousUser)));
         }
@@ -48,32 +76,45 @@ namespace BlazorBookHub.Client.Services
         private IEnumerable<Claim> ParseClaimsFromJwt(string jwt)
         {
             var claims = new List<Claim>();
-            var payload = jwt.Split('.')[1];
+
+            if (string.IsNullOrWhiteSpace(jwt))
+                return claims;
+
+            var segments = jwt.Split('.');
+            if (segments.Length != 3)
+                return claims;
+
+            var payload = segments[1];
             var jsonBytes = ParseBase64WithoutPadding(payload);
+
             var keyValuePairs = JsonSerializer.Deserialize<Dictionary<string, object>>(jsonBytes);
 
-            foreach (var kvp in keyValuePairs!)
+            if (keyValuePairs == null)
+                return claims;
+
+            foreach (var kvp in keyValuePairs)
             {
                 if (kvp.Key == "role")
                 {
-                    if (kvp.Value.ToString()!.StartsWith("["))
+                    if (kvp.Value is JsonElement element && element.ValueKind == JsonValueKind.Array)
                     {
-                        var roles = JsonSerializer.Deserialize<string[]>(kvp.Value.ToString()!);
-                        foreach (var role in roles!)
+                        foreach (var role in element.EnumerateArray())
                         {
-                            claims.Add(new Claim(ClaimTypes.Role, role));
+                            claims.Add(new Claim(ClaimTypes.Role, role.GetString() ?? ""));
                         }
                     }
                     else
                     {
-                        claims.Add(new Claim(ClaimTypes.Role, kvp.Value.ToString()!));
+                        var role = kvp.Value.ToString() ?? "";
+                        claims.Add(new Claim(ClaimTypes.Role, role));
                     }
                 }
                 else
                 {
-                    claims.Add(new Claim(kvp.Key, kvp.Value.ToString()!));
+                    claims.Add(new Claim(kvp.Key, kvp.Value.ToString() ?? ""));
                 }
             }
+
             return claims;
         }
 

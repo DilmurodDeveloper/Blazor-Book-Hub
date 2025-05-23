@@ -20,14 +20,30 @@ namespace BlazorBookHub.Server.Services
 
         public async Task<IEnumerable<BookDto>> GetAllAsync()
         {
-            var books = await _context.Books.ToListAsync();
-            return books.Select(b => _mapper.Map<BookDto>(b));
+            var books = await _context.Books
+                .Include(b => b.Category)
+                .ToListAsync();
+
+            return books.Select(b =>
+            {
+                var dto = _mapper.Map<BookDto>(b);
+                dto.CategoryName = b.Category?.Name ?? string.Empty;
+                return dto;
+            });
         }
 
         public async Task<BookDto?> GetByIdAsync(int id)
         {
-            var book = await _context.Books.FindAsync(id);
-            return book == null ? null : _mapper.Map<BookDto>(book);
+            var book = await _context.Books
+                .Include(b => b.Category)
+                .FirstOrDefaultAsync(b => b.Id == id);
+
+            if (book == null)
+                return null;
+
+            var dto = _mapper.Map<BookDto>(book);
+            dto.CategoryName = book.Category?.Name ?? string.Empty;
+            return dto;
         }
 
         public async Task<BookDto> CreateAsync(CreateBookDto dto)
@@ -59,6 +75,12 @@ namespace BlazorBookHub.Server.Services
             existing.Author = dto.Author;
             existing.Description = dto.Description ?? string.Empty;
             existing.CategoryId = dto.CategoryId;
+
+            if (!string.IsNullOrEmpty(dto.PdfPath))
+                existing.PdfPath = dto.PdfPath;
+
+            if (!string.IsNullOrEmpty(dto.CoverImagePath))
+                existing.CoverImagePath = dto.CoverImagePath;
 
             _context.Books.Update(existing);
             await _context.SaveChangesAsync();

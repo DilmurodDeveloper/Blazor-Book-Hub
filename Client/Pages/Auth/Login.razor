@@ -1,4 +1,5 @@
 ﻿@page "/login"
+@layout EmptyLayout
 @inject HttpClient Http
 @inject NavigationManager NavigationManager
 @inject Blazored.LocalStorage.ILocalStorageService LocalStorage
@@ -25,6 +26,10 @@
     <button type="submit">Login</button>
 </EditForm>
 
+<p>
+    Not registered? <a href="/register">Register</a>
+</p>
+
 @if (!string.IsNullOrEmpty(errorMessage))
 {
     <p style="color:red">@errorMessage</p>
@@ -38,29 +43,48 @@
     {
         errorMessage = string.Empty;
 
-        var response = await Http.PostAsJsonAsync("api/auth/login", loginModel);
-
-        if (response.IsSuccessStatusCode)
+        try
         {
-            var result = await response.Content.ReadFromJsonAsync<LoginResponse>();
-            if (result != null)
+            var response = await Http.PostAsJsonAsync("api/auth/login", loginModel);
+
+            if (response.IsSuccessStatusCode)
             {
-                await LocalStorage.SetItemAsync("authToken", result.Token);
-                await LocalStorage.SetItemAsync("userName", result.FullName);
-                await LocalStorage.SetItemAsync("userRoles", result.Roles);
+                var result = await response.Content.ReadFromJsonAsync<LoginResponse>();
 
-                AuthStateProvider.NotifyUserAuthentication(result.Token);
+                if (result != null)
+                {
+                    await LocalStorage.SetItemAsync("authToken", result.Token);
+                    await LocalStorage.SetItemAsync("userName", result.FullName);
+                    await LocalStorage.SetItemAsync("userRoles", result.Roles);
 
-                NavigationManager.NavigateTo("/");
+                    AuthStateProvider.NotifyUserAuthentication(result.Token);
+
+                    if (result.Roles.Contains("Admin"))
+                    {
+                        NavigationManager.NavigateTo("/admin/dashboard");
+                    }
+                    else if (result.Roles.Contains("User"))
+                    {
+                        NavigationManager.NavigateTo("/users/dashboard");
+                    }
+                    else
+                    {
+                        NavigationManager.NavigateTo("/");
+                    }
+                }
+                else
+                {
+                    errorMessage = "An invalid response was received from the server.";
+                }
             }
             else
             {
-                errorMessage = "An invalid response was received from the server.";
+                errorMessage = "Incorrect email or password.";
             }
         }
-        else
+        catch (Exception ex)
         {
-            errorMessage = "Incorrect email or password.";
+            errorMessage = "An error occurred: " + ex.Message;
         }
     }
 }

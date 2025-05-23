@@ -16,10 +16,8 @@ namespace BlazorBookHub.Shared.Models
         [Required] 
         public int CategoryId { get; set; }
 
-        [Required] 
         public IFormFile? PdfFile { get; set; }
-        
-        [Required] 
+
         public IFormFile? ImageFile { get; set; }
     }
 }

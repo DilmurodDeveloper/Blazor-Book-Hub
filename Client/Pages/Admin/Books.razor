@@ -1,11 +1,12 @@
 ﻿@page "/admin/books"
 @inject HttpClient Http
+@inject NavigationManager NavigationManager
 @inject IJSRuntime JS
 @attribute [Authorize(Roles = "Admin")]
 
 <h3>Book management</h3>
 
-<button class="btn btn-primary mb-3" @onclick="ShowAddBookForm">Add a new book</button>
+<button class="btn btn-primary mb-3" @onclick="NavigateToUploadForCreate">Add a new book</button>
 
 @if (books == null)
 {
@@ -16,9 +17,11 @@ else
     <table class="table table-striped">
         <thead>
             <tr>
+                <th>Cover</th>
                 <th>Title</th>
                 <th>Author</th>
                 <th>Category Name</th>
+                <th>PDF</th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -26,76 +29,38 @@ else
             @foreach (var book in books)
             {
                 <tr>
+                    <td>
+                        @if (!string.IsNullOrWhiteSpace(book.CoverImagePath))
+                        {
+                            <img src="@($"/{book.CoverImagePath}")" alt="Cover" width="60" />
+                        }
+                    </td>
                     <td>@book.Title</td>
                     <td>@book.Author</td>
                     <td>@book.CategoryName</td>
                     <td>
-                        <button class="btn btn-sm btn-info me-2" @onclick="() => EditBook(book.Id)">Edit</button>
+                        @if (!string.IsNullOrWhiteSpace(book.PdfPath))
+                        {
+                            <a href="@($"/{book.PdfPath}")" target="_blank">Open PDF</a>
+                        }
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-info me-2" @onclick="() => NavigateToUploadForEdit(book.Id)">Edit</button>
                         <button class="btn btn-sm btn-danger" @onclick="() => DeleteBook(book.Id)">Delete</button>
                     </td>
                 </tr>
             }
         </tbody>
     </table>
-}
 
-@if (showForm)
-{
-    <EditForm Model="bookModel" OnValidSubmit="HandleValidSubmit">
-        <DataAnnotationsValidator />
-        <ValidationSummary />
-
-        <div class="mb-3">
-            <label>Title:</label>
-            <InputText @bind-Value="bookModel.Title" class="form-control" />
-            <ValidationMessage For="@(() => bookModel.Title)" />
-        </div>
-
-        <div class="mb-3">
-            <label>Author:</label>
-            <InputText @bind-Value="bookModel.Author" class="form-control" />
-            <ValidationMessage For="@(() => bookModel.Author)" />
-        </div>
-
-        <div class="mb-3">
-            <label>Description:</label>
-            <InputTextArea @bind-Value="bookModel.Description" class="form-control" />
-            <ValidationMessage For="@(() => bookModel.Description)" />
-        </div>
-
-        <div class="mb-3">
-            <label>Category Name:</label>
-            <select @bind="bookModel.CategoryId" class="form-select">
-                <option value="0">-- Tanlang --</option>
-                @foreach (var category in categories)
-                {
-                    <option value="@category.Id">@category.Name</option>
-                }
-            </select>
-            <ValidationMessage For="@(() => bookModel.CategoryId)" />
-        </div>
-
-        <button type="submit" class="btn btn-success me-2">@((bookModel.Id == 0) ? "Add" : "Update")</button>
-        <button type="button" class="btn btn-secondary" @onclick="Cancel">Cancel</button>
-    </EditForm>
 }
 
 @code {
     private List<BookDto>? books;
-    private BookDto bookModel = new();
-    private bool showForm = false;
-
-    private List<CategoryDto> categories = new();
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadCategories();
         await LoadBooks();
-    }
-
-    private async Task LoadCategories()
-    {
-        categories = await Http.GetFromJsonAsync<List<CategoryDto>>("api/categories") ?? new List<CategoryDto>();
     }
 
     private async Task LoadBooks()
@@ -103,20 +68,14 @@ else
         books = await Http.GetFromJsonAsync<List<BookDto>>("api/books");
     }
 
-    private void ShowAddBookForm()
+    private void NavigateToUploadForCreate()
     {
-        bookModel = new BookDto();
-        showForm = true;
+        NavigationManager.NavigateTo("/admin/upload");
     }
 
-    private async Task EditBook(int id)
+    private void NavigateToUploadForEdit(int id)
     {
-        var book = await Http.GetFromJsonAsync<BookDto>($"api/books/{id}");
-        if (book != null)
-        {
-            bookModel = book;
-            showForm = true;
-        }
+        NavigationManager.NavigateTo($"/admin/upload/{id}");
     }
 
     private async Task DeleteBook(int id)
@@ -133,38 +92,5 @@ else
             {
             }
         }
-    }
-
-    private async Task HandleValidSubmit()
-    {
-        if (bookModel.Id == 0)
-        {
-            var response = await Http.PostAsJsonAsync("api/books", bookModel);
-            if (response.IsSuccessStatusCode)
-            {
-                await LoadBooks();
-                showForm = false;
-            }
-            else
-            {
-            }
-        }
-        else
-        {
-            var response = await Http.PutAsJsonAsync($"api/books/{bookModel.Id}", bookModel);
-            if (response.IsSuccessStatusCode)
-            {
-                await LoadBooks();
-                showForm = false;
-            }
-            else
-            {
-            }
-        }
-    }
-
-    private void Cancel()
-    {
-        showForm = false;
     }
 }

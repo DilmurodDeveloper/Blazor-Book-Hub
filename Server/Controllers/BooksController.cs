@@ -103,4 +103,33 @@ public class BooksController : ControllerBase
             return StatusCode(500, new { message = "An error occurred during the file upload process.", error = ex.Message });
         }
     }
+
+    [Authorize(Roles = "Admin")]
+    [HttpPut("upload/{id}")]
+    public async Task<IActionResult> UpdateBookWithFile(int id, [FromForm] BookUploadDto model)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var existingBook = await _bookService.GetByIdAsync(id);
+        if (existingBook == null)
+            return NotFound(new { message = $"Book with id {id} not found." });
+
+        var pdfPath = await _fileStorageService.SaveFileAsync(model.PdfFile, "pdfs") ?? existingBook.PdfPath;
+        var imgPath = await _fileStorageService.SaveFileAsync(model.ImageFile, "images") ?? existingBook.CoverImagePath;
+
+        var dto = new CreateBookDto
+        {
+            Title = model.Title,
+            Author = model.Author,
+            Description = model.Description ?? string.Empty,
+            CategoryId = model.CategoryId,
+            PdfPath = pdfPath,
+            CoverImagePath = imgPath
+        };
+
+        await _bookService.UpdateAsync(id, dto);
+
+        return Ok(new { message = "Book successfully updated." });
+    }
 }

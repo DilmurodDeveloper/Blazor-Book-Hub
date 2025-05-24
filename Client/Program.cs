@@ -14,10 +14,9 @@ builder.Services.AddBlazoredLocalStorage();
 
 builder.Services.AddAuthorizationCore();
 
-builder.Services.AddScoped<AuthenticationStateProvider, JwtAuthenticationStateProvider>();
 builder.Services.AddScoped<JwtAuthenticationStateProvider>();
-builder.Services.AddScoped<AuthenticationStateProvider>(sp => sp.GetRequiredService<JwtAuthenticationStateProvider>());
-
+builder.Services.AddScoped<AuthenticationStateProvider>(
+    sp => sp.GetRequiredService<JwtAuthenticationStateProvider>());
 
 builder.Services.AddScoped<AuthService>();
 
@@ -26,7 +25,6 @@ builder.Services.AddHttpClient("BlazorBookHub.ServerAPI", client =>
     client.BaseAddress = new Uri(builder.HostEnvironment.BaseAddress);
     client.Timeout = TimeSpan.FromMinutes(10);
 });
-
 
 builder.Services.AddScoped(sp =>
     sp.GetRequiredService<IHttpClientFactory>().CreateClient("BlazorBookHub.ServerAPI"));

@@ -1,37 +1,45 @@
 ﻿@page "/admin/users"
 @inject HttpClient Http
 
-<h3>Users List</h3>
+<h3 class="mb-4 text-center text-primary">Users List</h3>
 
 @if (users == null)
 {
-    <p><em>Loading...</em></p>
+    <div class="d-flex justify-content-center my-5">
+        <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
 }
 else if (!users.Any())
 {
-    <p>No users found.</p>
+    <div class="alert alert-warning text-center" role="alert">
+        No users found.
+    </div>
 }
 else
 {
-    <table class="table table-striped">
-        <thead>
-            <tr>
-                <th>Id</th>
-                <th>FullName</th>
-                <th>Email</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var user in users)
-            {
+    <div class="table-responsive">
+        <table class="table table-hover table-striped shadow-sm align-middle">
+            <thead class="table-primary">
                 <tr>
-                    <td>@user.Id</td>
-                    <td>@user.FullName</td>
-                    <td>@user.Email</td>
+                    <th style="width: 10%;">Id</th>
+                    <th style="width: 45%;">Full Name</th>
+                    <th style="width: 45%;">Email</th>
                 </tr>
-            }
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                @foreach (var user in users)
+                {
+                    <tr>
+                        <td>@user.Id</td>
+                        <td>@user.FullName</td>
+                        <td>@user.Email</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
 }
 
 @code {

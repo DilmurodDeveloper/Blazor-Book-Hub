@@ -1,51 +1,45 @@
 ﻿@inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager NavigationManager
 @inject AuthService AuthService
-@implements IDisposable
 
-<div class="nav-menu">
-    <nav>
-        <NavLink href="/" Match="NavLinkMatch.All">Home</NavLink>
+<ul class="navbar-nav d-flex flex-row align-items-center flex-nowrap w-100 justify-content-between">
+    <li class="nav-item">
+        <a href=@homeUrl class="navbar-brand fw-bold text-light">
+            Online Book Library
+        </a>
+    </li>
 
+    <li class="nav-item d-flex align-items-center">
         @if (isAdmin)
         {
-            <NavLink href="/admin/books">Book management</NavLink>
-            <NavLink href="/admin/categories">Category management</NavLink>
-            <NavLink href="/admin/users">User management</NavLink>
+            <NavLink href="/admin/books" class="nav-link text-light me-3">Book Management</NavLink>
+            <NavLink href="/admin/categories" class="nav-link text-light me-3">Category Management</NavLink>
+            <NavLink href="/admin/users" class="nav-link text-light">User Management</NavLink>
         }
-
         @if (isUser)
         {
-            <NavLink href="/user/books">Books</NavLink>
-            <NavLink href="/user/profile">Profile</NavLink>
+            <NavLink href="/user/books" class="nav-link text-light me-3">Books</NavLink>
+            <NavLink href="/user/profile" class="nav-link text-light">Profile</NavLink>
         }
+    </li>
 
-        @if (isUser || isAdmin)
-        {
-            <button class="btn btn-link" @onclick="Logout">Logout</button>
-        }
-    </nav>
-</div>
+    @if (isUser || isAdmin)
+    {
+        <li class="nav-item">
+            <button class="btn btn-danger btn-sm" @onclick="Logout">
+                <i class="bi bi-box-arrow-right me-1"></i> Logout
+            </button>
+        </li>
+    }
+</ul>
 
 @code {
     private bool isAdmin = false;
     private bool isUser = false;
+    private string homeUrl = "/";
     private AuthenticationState? authState;
 
     protected override async Task OnInitializedAsync()
-    {
-        AuthStateProvider.AuthenticationStateChanged += OnAuthStateChanged;
-        await LoadUserRole();
-    }
-
-    private async void OnAuthStateChanged(Task<AuthenticationState> task)
-    {
-        authState = await task;
-        UpdateUserRoles();
-        StateHasChanged();
-    }
-
-    private async Task LoadUserRole()
     {
         authState = await AuthStateProvider.GetAuthenticationStateAsync();
         UpdateUserRoles();
@@ -53,18 +47,25 @@
 
     private void UpdateUserRoles()
     {
-        isAdmin = authState?.User.IsInRole("Admin") ?? false;
-        isUser = authState?.User.IsInRole("User") ?? false;
+        if (authState?.User.Identity is not { IsAuthenticated: true })
+        {
+            isAdmin = false;
+            isUser = false;
+            homeUrl = "/";
+            return;
+        }
+
+        isAdmin = authState.User.IsInRole("Admin");
+        isUser = authState.User.IsInRole("User");
+
+        homeUrl = isAdmin ? "/admin/dashboard"
+                 : isUser ? "/user/books"
+                 : "/";
     }
 
     private async Task Logout()
     {
         await AuthService.Logout();
         NavigationManager.NavigateTo("/login", true);
-    }
-
-    public void Dispose()
-    {
-        AuthStateProvider.AuthenticationStateChanged -= OnAuthStateChanged;
     }
 }

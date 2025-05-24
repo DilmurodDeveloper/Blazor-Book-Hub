@@ -1,17 +1,66 @@
 ﻿@inherits LayoutComponentBase
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager NavigationManager
+@inject AuthService AuthService
+@implements IDisposable
 
-<div class="page">
-    <div class="sidebar">
-        <NavMenu />
-    </div>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
+    <div class="container-fluid">
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenuContent"
+                aria-controls="navMenuContent" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
 
-    <main>
-        <div class="top-row px-4">
-            <a href="https://docs.microsoft.com/aspnet/" target="_blank">About</a>
+        <div class="collapse navbar-collapse justify-content-between" id="navMenuContent">
+            <NavMenu />
+
         </div>
+    </div>
+</nav>
 
-        <article class="content px-4">
-            @Body
-        </article>
-    </main>
-</div>
+<main class="container my-4">
+    @Body
+</main>
+
+@code {
+    private bool isAdmin = false;
+    private bool isUser = false;
+    private AuthenticationState? authState;
+
+    protected override async Task OnInitializedAsync()
+    {
+        AuthStateProvider.AuthenticationStateChanged += OnAuthStateChanged;
+        await LoadUserRole();
+    }
+
+    private async void OnAuthStateChanged(Task<AuthenticationState> task)
+    {
+        authState = await task;
+        UpdateUserRoles();
+        StateHasChanged();
+    }
+
+    private async Task LoadUserRole()
+    {
+        authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        UpdateUserRoles();
+    }
+
+    private void UpdateUserRoles()
+    {
+        if (authState?.User.Identity is not { IsAuthenticated: true })
+        {
+            isAdmin = false;
+            isUser = false;
+            return;
+        }
+
+        isAdmin = authState.User.IsInRole("Admin");
+        isUser = authState.User.IsInRole("User");
+    }
+
+    public void Dispose()
+    {
+        AuthStateProvider.AuthenticationStateChanged -= OnAuthStateChanged;
+    }
+}

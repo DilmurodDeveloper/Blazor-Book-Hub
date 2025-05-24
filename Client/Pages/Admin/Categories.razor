@@ -2,25 +2,33 @@
 @inject HttpClient Http
 @inject IJSRuntime JS
 
-<h3>Manage Categories</h3>
+<h3 class="mb-4 text-center text-primary">Manage Categories</h3>
 
-<button class="btn btn-primary mb-3" @onclick="ShowAddCategoryForm">Add New Category</button>
+<div class="d-flex justify-content-end mb-3">
+    <button class="btn btn-success" @onclick="ShowAddCategoryForm">
+        <i class="bi bi-plus-lg me-1"></i> Add New Category
+    </button>
+</div>
 
 @if (categories == null)
 {
-    <p><em>Loading...</em></p>
+    <div class="text-center my-5">
+        <div class="spinner-border text-primary" role="status"></div>
+    </div>
 }
 else if (categories.Count == 0)
 {
-    <p>No categories found.</p>
+    <div class="alert alert-warning text-center" role="alert">
+        No categories found.
+    </div>
 }
 else
 {
-    <table class="table table-striped">
-        <thead>
+    <table class="table table-hover align-middle">
+        <thead class="table-primary">
             <tr>
                 <th>Name</th>
-                <th>Actions</th>
+                <th style="width: 150px;">Actions</th>
             </tr>
         </thead>
         <tbody>
@@ -29,8 +37,12 @@ else
                 <tr>
                     <td>@category.Name</td>
                     <td>
-                        <button class="btn btn-sm btn-info me-2" @onclick="() => EditCategory(category.Id)">Edit</button>
-                        <button class="btn btn-sm btn-danger" @onclick="() => DeleteCategory(category.Id)">Delete</button>
+                        <button class="btn btn-sm btn-outline-info me-2" title="Edit" @onclick="() => EditCategory(category.Id)">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger" title="Delete" @onclick="() => DeleteCategory(category.Id)">
+                            <i class="bi bi-trash"></i>
+                        </button>
                     </td>
                 </tr>
             }
@@ -40,19 +52,33 @@ else
 
 @if (showForm)
 {
-    <EditForm Model="categoryModel" OnValidSubmit="HandleValidSubmit">
-        <DataAnnotationsValidator />
-        <ValidationSummary />
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.4);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">@((categoryModel.Id == 0) ? "Add New Category" : "Edit Category")</h5>
+                    <button type="button" class="btn-close btn-close-white" aria-label="Close" @onclick="Cancel"></button>
+                </div>
+                <div class="modal-body">
+                    <EditForm Model="categoryModel" OnValidSubmit="HandleValidSubmit">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary />
 
-        <div class="mb-3">
-            <label>Name:</label>
-            <InputText @bind-Value="categoryModel.Name" class="form-control" />
-            <ValidationMessage For="@(() => categoryModel.Name)" />
+                        <div class="mb-3">
+                            <label class="form-label">Name</label>
+                            <InputText @bind-Value="categoryModel.Name" class="form-control" />
+                            <ValidationMessage For="@(() => categoryModel.Name)" />
+                        </div>
+
+                        <div class="d-flex justify-content-end gap-2">
+                            <button type="submit" class="btn btn-primary">@((categoryModel.Id == 0) ? "Add" : "Update")</button>
+                            <button type="button" class="btn btn-secondary" @onclick="Cancel">Cancel</button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
         </div>
-
-        <button type="submit" class="btn btn-success me-2">@((categoryModel.Id == 0) ? "Add" : "Update")</button>
-        <button type="button" class="btn btn-secondary" @onclick="Cancel">Cancel</button>
-    </EditForm>
+    </div>
 }
 
 @code {

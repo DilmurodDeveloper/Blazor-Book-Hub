@@ -3,61 +3,70 @@
 @inject HttpClient Http
 @inject NavigationManager NavigationManager
 
-<h3>@((BookId == 0) ? "Add a New Book" : "Edit Book")</h3>
+<h3 class="text-center mb-4">@((BookId == 0) ? "Add a New Book" : "Edit Book")</h3>
 
 <EditForm Model="@bookModel" OnValidSubmit="@HandleSubmit">
     <DataAnnotationsValidator />
     <ValidationSummary />
 
-    <div class="mb-3">
-        <label>Title:</label>
-        <InputText @bind-Value="bookModel.Title" class="form-control" />
+    <div class="form-floating mb-3">
+        <InputText @bind-Value="bookModel.Title" id="titleInput" class="form-control" placeholder="Title" />
+        <label for="titleInput">Title</label>
     </div>
 
-    <div class="mb-3">
-        <label>Author:</label>
-        <InputText @bind-Value="bookModel.Author" class="form-control" />
+    <div class="form-floating mb-3">
+        <InputText @bind-Value="bookModel.Author" id="authorInput" class="form-control" placeholder="Author" />
+        <label for="authorInput">Author</label>
     </div>
 
-    <div class="mb-3">
-        <label>Description:</label>
-        <InputTextArea @bind-Value="bookModel.Description" class="form-control" />
+    <div class="form-floating mb-3">
+        <InputTextArea @bind-Value="bookModel.Description" id="descriptionInput" class="form-control" style="height: 120px;" placeholder="Description" />
+        <label for="descriptionInput">Description</label>
     </div>
 
-    <div class="mb-3">
-        <label>Category ID:</label>
-        <InputNumber @bind-Value="bookModel.CategoryId" class="form-control" />
+    <div class="form-floating mb-4">
+        <select class="form-select" id="categorySelect" @bind="bookModel.CategoryId" required>
+            <option value="0" disabled>Select category</option>
+            @foreach (var category in categories)
+            {
+                <option value="@category.Id">@category.Name</option>
+            }
+        </select>
+        <label for="categorySelect">Category</label>
     </div>
 
-    <div class="mb-3">
-        <label>Select PDF file:</label>
-        <InputFile OnChange="@OnPdfSelected" />
+
+    <div class="mb-4">
+        <label class="form-label fw-semibold">Select PDF file</label>
+        <InputFile OnChange="@OnPdfSelected" class="form-control" />
         @if (BookId != 0 && !string.IsNullOrEmpty(existingPdfPath))
         {
-            <div><small>Current file: @existingPdfPath</small></div>
+            <div class="mt-1 text-muted"><small>Current file: @existingPdfPath</small></div>
         }
     </div>
 
-    <div class="mb-3">
-        <label>Select image file:</label>
-        <InputFile OnChange="@OnImageSelected" />
+    <div class="mb-4">
+        <label class="form-label fw-semibold">Select image file</label>
+        <InputFile OnChange="@OnImageSelected" class="form-control" />
         @if (BookId != 0 && !string.IsNullOrEmpty(existingImagePath))
         {
-            <div><small>Current image: @existingImagePath</small></div>
+            <div class="mt-1 text-muted"><small>Current image: @existingImagePath</small></div>
         }
     </div>
 
-    <button type="submit" class="btn btn-primary">@((BookId == 0) ? "Upload" : "Update")</button>
-    <button type="button" class="btn btn-secondary ms-2" @onclick="Cancel">Cancel</button>
+    <div class="d-flex justify-content-end">
+        <button type="submit" class="btn btn-primary">@((BookId == 0) ? "Upload" : "Update")</button>
+        <button type="button" class="btn btn-secondary ms-3" @onclick="Cancel">Cancel</button>
+    </div>
 </EditForm>
 
 @if (!string.IsNullOrWhiteSpace(successMessage))
 {
-    <p class="text-success">@successMessage</p>
+    <div class="alert alert-success text-center mt-4" role="alert">@successMessage</div>
 }
 @if (!string.IsNullOrWhiteSpace(errorMessage))
 {
-    <p class="text-danger">@errorMessage</p>
+    <div class="alert alert-danger text-center mt-4" role="alert">@errorMessage</div>
 }
 
 @code {
@@ -72,9 +81,12 @@
 
     private string successMessage = string.Empty;
     private string errorMessage = string.Empty;
+    private List<CategoryDto> categories = new();
 
     protected override async Task OnInitializedAsync()
     {
+        categories = await Http.GetFromJsonAsync<List<CategoryDto>>("api/categories") ?? new();
+
         if (BookId != 0)
         {
             var book = await Http.GetFromJsonAsync<BookDto>($"api/books/{BookId}");

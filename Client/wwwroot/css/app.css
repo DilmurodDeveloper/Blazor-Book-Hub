@@ -91,3 +91,18 @@ a, .btn-link {
     border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
+.custom-card {
+    border-radius: 12px;
+    color: #000;
+    text-decoration: none;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease, opacity 0.3s ease;
+    opacity: 1;
+}
+
+    .custom-card:hover {
+        transform: translateY(-8px) scale(1.03);
+        box-shadow: 0 12px 30px rgba(0,0,0,0.2);
+        background-color: #d0d0d0; 
+        cursor: pointer;
+    }

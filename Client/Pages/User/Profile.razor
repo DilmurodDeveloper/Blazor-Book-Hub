@@ -2,15 +2,18 @@
 @inject HttpClient Http
 @inject NavigationManager NavigationManager
 
-<h3>User Profile</h3>
+<h3 class="mb-4 text-center fw-bold text-primary">User Profile</h3>
 
 @if (loading)
 {
-    <p><em>Loading...</em></p>
+    <div class="d-flex justify-content-center my-5">
+        <div class="spinner-border text-primary" role="status" aria-hidden="true"></div>
+        <span class="visually-hidden">Loading...</span>
+    </div>
 }
 else if (loadError != null)
 {
-    <p class="text-danger">Error loading profile: @loadError</p>
+    <div class="alert alert-danger text-center" role="alert">@loadError</div>
 }
 else
 {
@@ -20,42 +23,57 @@ else
 
         <div class="mb-3">
             <label for="fullName" class="form-label">Full Name</label>
-            <InputText id="fullName" class="form-control" @bind-Value="profileModel.FullName" />
-        </div>
-
-        <div class="mb-3">
-            <label for="email" class="form-label">Email</label>
-            <InputText id="email" type="email" class="form-control" @bind-Value="profileModel.Email" />
-        </div>
-
-        <div class="mb-3">
-            <label for="birthDate" class="form-label">Birth Date</label>
-            <InputDate id="birthDate" class="form-control" @bind-Value="profileModel.BirthDate" />
-        </div>
-
-        <div class="mb-3">
-            <label for="gender" class="form-label">Gender</label>
-            <InputSelect id="gender" class="form-select" @bind-Value="profileModel.Gender">
-                <option value="">Select gender</option>
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-                <option value="Other">Other</option>
-            </InputSelect>
+            <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-person-fill"></i></span>
+                <InputText id="fullName" class="form-control" @bind-Value="profileModel.FullName" placeholder="Enter your full name" />
+            </div>
         </div>
 
         @* <div class="mb-3">
-            <label for="avatarUrl" class="form-label">Avatar URL</label>
-            <InputText id="avatarUrl" class="form-control" @bind-Value="profileModel.AvatarUrl" />
+            <label for="email" class="form-label">Email</label>
+            <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-envelope-fill"></i></span>
+                <InputText id="email" type="email" class="form-control" @bind-Value="profileModel.Email" placeholder="Enter your email" />
+            </div>
         </div> *@
 
-        <button type="submit" class="btn btn-primary">Save</button>
+        <div class="mb-3">
+            <label for="birthDate" class="form-label">Birth Date</label>
+            <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-calendar-date"></i></span>
+                <InputDate id="birthDate" class="form-control" @bind-Value="profileModel.BirthDate" />
+            </div>
+        </div>
+
+        <div class="mb-4">
+            <label for="gender" class="form-label">Gender</label>
+            <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-gender-ambiguous"></i></span>
+                <InputSelect id="gender" class="form-select" @bind-Value="profileModel.Gender">
+                    <option value="">Select gender</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                </InputSelect>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-center">
+            <button type="submit" class="btn btn-primary px-5">Save</button>
+        </div>
     </EditForm>
+
+    @if (successMessage != null)
+    {
+        <div class="alert alert-success text-center mt-4" role="alert">@successMessage</div>
+    }
 }
 
 @code {
     private UserProfileDto profileModel = new();
     private bool loading = true;
     private string? loadError;
+    private string? successMessage;
 
     protected override async Task OnInitializedAsync()
     {
@@ -73,13 +91,15 @@ else
 
     private async Task UpdateProfile()
     {
+        loadError = null;
+        successMessage = null;
+
         try
         {
             var updateDto = new UpdateUserProfileDto
             {
                 FullName = profileModel.FullName,
                 Email = profileModel.Email,
-                // AvatarUrl = profileModel.AvatarUrl,
                 BirthDate = profileModel.BirthDate,
                 Gender = profileModel.Gender
             };
@@ -87,11 +107,11 @@ else
             var response = await Http.PutAsJsonAsync("api/user/profile", updateDto);
             if (response.IsSuccessStatusCode)
             {
-                NavigationManager.NavigateTo("/user/books");
+                successMessage = "Profile updated successfully!";
             }
             else
             {
-                loadError = "Failed to update profile";
+                loadError = "Failed to update profile. Please try again.";
             }
         }
         catch (Exception ex)

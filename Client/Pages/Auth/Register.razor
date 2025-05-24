@@ -2,73 +2,109 @@
 @layout EmptyLayout
 @inject HttpClient Http
 @inject NavigationManager NavigationManager
+@inject IJSRuntime JS
 
-<h3>Register</h3>
+<div class="register-background d-flex justify-content-center align-items-center vh-100">
+    <div id="registerCard" class="card shadow-sm p-4" style="width: 380px;">
+        <h3 class="text-center mb-4">Create an Account</h3>
 
-<EditForm Model="registerModel" OnValidSubmit="HandleRegister">
-    <DataAnnotationsValidator />
-    <ValidationSummary />
+        @if (!string.IsNullOrEmpty(successMessage))
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                @successMessage
+                <button type="button" class="btn-close" aria-label="Close" @onclick="() => successMessage = null"></button>
+            </div>
+        }
 
-    <div>
-        <label>FullName:</label><br />
-        <InputText @bind-Value="registerModel.FullName" />
-        <ValidationMessage For="@(() => registerModel.FullName)" />
+        <EditForm Model="registerModel" OnValidSubmit="HandleRegister">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <div class="mb-3">
+                <label class="form-label">Full Name</label>
+                <InputText class="form-control" @bind-Value="registerModel.FullName" placeholder="Enter full name" />
+                <ValidationMessage For="@(() => registerModel.FullName)" class="text-danger" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Email</label>
+                <InputText class="form-control" @bind-Value="registerModel.Email" placeholder="Enter email" />
+                <ValidationMessage For="@(() => registerModel.Email)" class="text-danger" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Password<small> (A-Z, a-z, 0-9, !#$%&)</small></label>
+                <InputText type="password" class="form-control" @bind-Value="registerModel.Password" placeholder="Enter password" />
+                <ValidationMessage For="@(() => registerModel.Password)" class="text-danger" />
+            </div>
+
+            <div class="row mb-3">
+                <div class="col">
+                    <label class="form-label">Date of Birth</label>
+                    <InputDate class="form-control" @bind-Value="registerModel.BirthDate" />
+                    <ValidationMessage For="@(() => registerModel.BirthDate)" class="text-danger" />
+                </div>
+
+                <div class="col">
+                    <label class="form-label">Gender</label>
+                    <InputSelect class="form-select" @bind-Value="registerModel.Gender">
+                        <option value="">Select</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Others">Others</option>
+                    </InputSelect>
+                    <ValidationMessage For="@(() => registerModel.Gender)" class="text-danger" />
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-success w-100">Register</button>
+        </EditForm>
+
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert alert-danger mt-3" role="alert">
+                @errorMessage
+            </div>
+        }
+
+        <p class="mt-3 text-center">
+            Already have an account?
+            <a href="/login">Login here</a>
+        </p>
     </div>
-
-    <div>
-        <label>Email:</label><br />
-        <InputText @bind-Value="registerModel.Email" />
-        <ValidationMessage For="@(() => registerModel.Email)" />
-    </div>
-
-    <div>
-        <label>Password:</label><br />
-        <InputText @bind-Value="registerModel.Password" type="password" />
-        <ValidationMessage For="@(() => registerModel.Password)" />
-    </div>
-
-    <div>
-        <label>Date of birth:</label><br />
-        <InputDate @bind-Value="registerModel.BirthDate" />
-        <ValidationMessage For="@(() => registerModel.BirthDate)" />
-    </div>
-
-    <div>
-        <label>Gender:</label><br />
-        <InputSelect @bind-Value="registerModel.Gender">
-            <option value="">Select gender</option>
-            <option value="Male">Male</option>
-            <option value="Female">Female</option>
-            <option value="Others">Others</option>
-        </InputSelect>
-        <ValidationMessage For="@(() => registerModel.Gender)" />
-    </div>
-
-
-    <button type="submit">Register</button>
-</EditForm>
-
-@if (!string.IsNullOrEmpty(errorMessage))
-{
-    <p style="color:red">@errorMessage</p>
-}
+</div>
 
 @code {
     private RegisterDto registerModel = new();
-    private string errorMessage = string.Empty;
+    private string? successMessage;
+    private string? errorMessage;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JS.InvokeVoidAsync("fadeIn", "registerCard");
+        }
+    }
 
     private async Task HandleRegister()
     {
-        errorMessage = string.Empty;
+        errorMessage = null;
+        successMessage = null;
+
         var response = await Http.PostAsJsonAsync("api/auth/register", registerModel);
 
         if (response.IsSuccessStatusCode)
         {
-            NavigationManager.NavigateTo("/login");
+            successMessage = "You have successfully registered!";
+
+            await Task.Delay(3000);
+            successMessage = null;
+            NavigationManager.NavigateTo("/login", true);
         }
         else
         {
-            string content = await response.Content.ReadAsStringAsync();
+            var content = await response.Content.ReadAsStringAsync();
 
             try
             {

@@ -32,7 +32,12 @@ namespace BlazorBookHub.Server.Data
 
             if (await userManager.FindByEmailAsync(adminEmail) == null)
             {
-                var adminUser = new ApplicationUser { UserName = adminEmail, Email = adminEmail };
+                var adminUser = new ApplicationUser 
+                { 
+                    UserName = adminEmail, 
+                    Email = adminEmail,
+                    FullName = "System Administrator"
+                };
                 var result = await userManager.CreateAsync(adminUser, adminPassword);
 
                 if (result.Succeeded)
